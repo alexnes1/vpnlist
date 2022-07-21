@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strconv"
 )
 
@@ -28,7 +27,7 @@ type VpnRecord struct {
 	LogType        string
 	Operator       string
 	Message        string
-	OpenVPNConfig  []byte
+	OpenVPNConfig  string
 }
 
 func (v VpnRecord) Filename() string {
@@ -36,7 +35,8 @@ func (v VpnRecord) Filename() string {
 }
 
 func (v VpnRecord) String() string {
-	return fmt.Sprintf("%s\t%s\t%s\t%d\t%d", v.CountryLong, v.IP, v.HostName, v.Speed, v.Ping)
+	return fmt.Sprintf("%-3s\t%-17s\t%-17s\t%-7.2f Mbps\t%-5d ms",
+		v.CountryShort, v.IP, v.HostName, float32(v.Speed)/1000000, v.Ping)
 }
 
 func makeRecordFromCsvRow(row []string) (VpnRecord, error) {
@@ -104,7 +104,7 @@ func makeRecordFromCsvRow(row []string) (VpnRecord, error) {
 			if err != nil {
 				return rec, err
 			}
-			rec.OpenVPNConfig = val
+			rec.OpenVPNConfig = string(val)
 		default:
 			return rec, fmt.Errorf("unexpected column")
 		}
@@ -113,52 +113,7 @@ func makeRecordFromCsvRow(row []string) (VpnRecord, error) {
 	return rec, nil
 }
 
-func getRecords() ([]VpnRecord, error) {
-	f, err := os.Open("list.csv")
-	if err != nil {
-		return []VpnRecord{}, err
-	}
-
-	defer f.Close()
-
-	reader := bufio.NewReader(f)
-
-	for i := 0; i < 2; i++ {
-		_, _, err = reader.ReadLine()
-		if err != nil {
-			return []VpnRecord{}, err
-		}
-	}
-
-	vpnRecords := []VpnRecord{}
-
-	csvReader := csv.NewReader(reader)
-
-	for {
-		row, err := csvReader.Read()
-		if row == nil && err == io.EOF {
-			break
-		}
-		if err != nil && row != nil {
-			continue
-		}
-		if err != nil && row == nil {
-			fmt.Println("error:", err)
-			return []VpnRecord{}, err
-		}
-
-		record, err := makeRecordFromCsvRow(row)
-		if err != nil {
-			continue
-		}
-		vpnRecords = append(vpnRecords, record)
-		fmt.Println(record)
-	}
-
-	return vpnRecords, nil
-}
-
-func downloadRecords() ([]VpnRecord, error) {
+func downloadRecords(output io.Writer) ([]VpnRecord, error) {
 	resp, err := http.Get(apiURL)
 	if err != nil {
 		return []VpnRecord{}, err
@@ -188,7 +143,6 @@ func downloadRecords() ([]VpnRecord, error) {
 			continue
 		}
 		if err != nil && row == nil {
-			fmt.Println("error:", err)
 			return []VpnRecord{}, err
 		}
 
@@ -197,7 +151,7 @@ func downloadRecords() ([]VpnRecord, error) {
 			continue
 		}
 		vpnRecords = append(vpnRecords, record)
-		fmt.Println(record)
+		fmt.Fprintf(output, "%s\n", record)
 	}
 
 	return vpnRecords, nil
