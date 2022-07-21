@@ -52,11 +52,32 @@ func makeRandomCmd(db *sql.DB) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			config, err := getRandomConfig(db)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: can retrieve config (%s).\n", err)
+				fmt.Fprintf(os.Stderr, "Error: can not retrieve config (%s).\n", err)
 				os.Exit(1)
 			}
 
 			fmt.Fprintf(os.Stdout, "%s\n", config)
+		},
+	}
+}
+
+func makeShowCmd(db *sql.DB) *cobra.Command {
+	return &cobra.Command{
+		Use:   "show",
+		Short: "show server records",
+		Long:  "Show servers stored in the database",
+		Run: func(cmd *cobra.Command, args []string) {
+			records, err := getAllRecords(db)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: can not retrieve records (%s).\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Fprintf(os.Stdout, "%-3s\t%-17s\t%-17s\t%-12s\t%-8s\n", "", "IP", "Host", "Speed", "Ping")
+			for _, r := range records {
+				fmt.Fprintf(os.Stdout, "%s\n", r)
+			}
+
 		},
 	}
 }

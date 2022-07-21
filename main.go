@@ -20,8 +20,9 @@ func init() {
 
 	updateCmd := makeUpdateCmd(db)
 	randomCmd := makeRandomCmd(db)
+	showCmd := makeShowCmd(db)
 
-	rootCmd.AddCommand(updateCmd, randomCmd)
+	rootCmd.AddCommand(updateCmd, randomCmd, showCmd)
 }
 
 func main() {

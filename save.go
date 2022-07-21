@@ -116,3 +116,31 @@ func getRandomConfig(db *sql.DB) (string, error) {
 	}
 	return config, nil
 }
+
+func getAllRecords(db *sql.DB) ([]VpnRecord, error) {
+	rows, err := db.Query(`SELECT HostName, IP, Ping, Speed, CountryShort FROM servers
+ORDER BY CountryShort, HostName;`)
+	if err != nil {
+		return []VpnRecord{}, err
+	}
+
+	defer rows.Close()
+
+	result := []VpnRecord{}
+
+	for rows.Next() {
+		var r VpnRecord
+		err := rows.Scan(&r.HostName, &r.IP, &r.Ping, &r.Speed, &r.CountryShort)
+		if err != nil {
+			return result, err
+		}
+		result = append(result, r)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
+}
