@@ -144,3 +144,16 @@ ORDER BY CountryShort, HostName;`)
 
 	return result, nil
 }
+
+func getSpecificConfig(db *sql.DB, search string) (string, error) {
+	row := db.QueryRow(`SELECT OpenVPNConfig FROM servers 
+WHERE HostName=?
+LIMIT 1;`,
+		search)
+	var config string
+	err := row.Scan(&config)
+	if err != nil {
+		return config, err
+	}
+	return config, nil
+}

@@ -61,11 +61,11 @@ func makeRandomCmd(db *sql.DB) *cobra.Command {
 	}
 }
 
-func makeShowCmd(db *sql.DB) *cobra.Command {
+func makeAllCmd(db *sql.DB) *cobra.Command {
 	return &cobra.Command{
-		Use:   "show",
-		Short: "show server records",
-		Long:  "Show servers stored in the database",
+		Use:   "all",
+		Short: "list all server records",
+		Long:  "List all servers stored in the database",
 		Run: func(cmd *cobra.Command, args []string) {
 			records, err := getAllRecords(db)
 			if err != nil {
@@ -78,6 +78,24 @@ func makeShowCmd(db *sql.DB) *cobra.Command {
 				fmt.Fprintf(os.Stdout, "%s\n", r)
 			}
 
+		},
+	}
+}
+
+func makeShowCmd(db *sql.DB) *cobra.Command {
+	return &cobra.Command{
+		Use:   "show",
+		Short: "show specific config",
+		Long:  "show OpenVPN config for host with specified name",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			config, err := getSpecificConfig(db, args[0])
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: can not retrieve config (%s).\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Fprintf(os.Stdout, "%s\n", config)
 		},
 	}
 }
