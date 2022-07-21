@@ -96,3 +96,13 @@ func saveRecords(db *sql.DB, records []VpnRecord) error {
 
 	return nil
 }
+
+func getTotalRecords(db *sql.DB) (int, error) {
+	row := db.QueryRow("SELECT COUNT(*) FROM servers;")
+	var total int
+	err := row.Scan(&total)
+	if err != nil {
+		return total, err
+	}
+	return total, nil
+}
