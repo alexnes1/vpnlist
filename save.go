@@ -106,3 +106,13 @@ func getTotalRecords(db *sql.DB) (int, error) {
 	}
 	return total, nil
 }
+
+func getRandomConfig(db *sql.DB) (string, error) {
+	row := db.QueryRow(`SELECT OpenVPNConfig FROM servers ORDER BY RANDOM() LIMIT 1;`)
+	var config string
+	err := row.Scan(&config)
+	if err != nil {
+		return config, err
+	}
+	return config, nil
+}

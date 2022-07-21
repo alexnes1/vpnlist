@@ -3,6 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
+)
+
+var (
+	Version   string
+	BuildTime string = time.Now().Format(time.RFC3339)
 )
 
 func init() {
@@ -13,8 +19,9 @@ func init() {
 	}
 
 	updateCmd := makeUpdateCmd(db)
+	randomCmd := makeRandomCmd(db)
 
-	rootCmd.AddCommand(updateCmd)
+	rootCmd.AddCommand(updateCmd, randomCmd)
 }
 
 func main() {
