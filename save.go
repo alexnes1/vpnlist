@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -117,8 +118,9 @@ func upperStringsSlice(a []string) []string {
 	return result
 }
 
-func getRandomConfig(db *sql.DB, countries []string, speed int) (string, error) {
-	query := sq.Select("OpenVPNConfig").From("servers").OrderBy(`RANDOM()`).Limit(1)
+func getRandomConfig(db *sql.DB, countries []string, speed int) (VpnRecord, error) {
+	query := sq.Select("OpenVPNConfig", "HostName", "IP", "CountryLong").
+		From("servers").OrderBy(`RANDOM()`).Limit(1)
 	if len(countries) > 0 {
 		countriesUpper := upperStringsSlice(countries)
 		query = query.Where(sq.Eq{"CountryShort": countriesUpper})
@@ -130,16 +132,16 @@ func getRandomConfig(db *sql.DB, countries []string, speed int) (string, error) 
 
 	sql, args, err := query.ToSql()
 	if err != nil {
-		return "", err
+		return VpnRecord{}, err
 	}
 
 	row := db.QueryRow(sql, args...)
-	var config string
-	err = row.Scan(&config)
+	var record VpnRecord
+	err = row.Scan(&record.OpenVPNConfig, &record.HostName, &record.IP, &record.CountryLong)
 	if err != nil {
-		return config, err
+		return VpnRecord{}, err
 	}
-	return config, nil
+	return record, nil
 }
 
 func getAllRecords(db *sql.DB, countries []string, speed int) ([]VpnRecord, error) {
@@ -186,17 +188,23 @@ func getAllRecords(db *sql.DB, countries []string, speed int) ([]VpnRecord, erro
 	return result, nil
 }
 
-func getSpecificConfig(db *sql.DB, search string) (string, error) {
-	row := db.QueryRow(`SELECT OpenVPNConfig FROM servers 
-WHERE HostName=?
-LIMIT 1;`,
-		search)
-	var config string
-	err := row.Scan(&config)
+func getSpecificConfig(db *sql.DB, search string) (VpnRecord, error) {
+	query := sq.Select("OpenVPNConfig", "HostName", "IP", "CountryLong").
+		From("servers").Where("HostName LIKE ?", fmt.Sprint("%", search, "%")).Limit(1)
+
+	sql, args, err := query.ToSql()
 	if err != nil {
-		return config, err
+		return VpnRecord{}, err
 	}
-	return config, nil
+
+	row := db.QueryRow(sql, args...)
+
+	var record VpnRecord
+	err = row.Scan(&record.OpenVPNConfig, &record.HostName, &record.IP, &record.CountryLong)
+	if err != nil {
+		return VpnRecord{}, err
+	}
+	return record, nil
 }
 
 func getCountries(db *sql.DB) ([]string, error) {

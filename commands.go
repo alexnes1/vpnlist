@@ -54,13 +54,16 @@ func makeRandomCmd(db *sql.DB) *cobra.Command {
 		Short: "get random config",
 		Long:  "Get random OpenVPN config from the local database",
 		Run: func(cmd *cobra.Command, args []string) {
-			config, err := getRandomConfig(db, countries, speed)
+			record, err := getRandomConfig(db, countries, speed)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: can not retrieve config (%s).\n", err)
 				os.Exit(1)
 			}
 
-			fmt.Fprintf(os.Stdout, "%s\n", config)
+			fmt.Fprintf(os.Stdout, "# HOST: %s.opengw.net\n", record.HostName)
+			fmt.Fprintf(os.Stdout, "# IP: %s\n", record.IP)
+			fmt.Fprintf(os.Stdout, "# COUNTRY: %s\n", record.CountryLong)
+			fmt.Fprintf(os.Stdout, "#%s\n", record.OpenVPNConfig)
 		},
 	}
 
@@ -106,13 +109,16 @@ func makeShowCmd(db *sql.DB) *cobra.Command {
 		Long:  "show OpenVPN config for host with specified name",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			config, err := getSpecificConfig(db, args[0])
+			record, err := getSpecificConfig(db, args[0])
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: can not retrieve config (%s).\n", err)
 				os.Exit(1)
 			}
 
-			fmt.Fprintf(os.Stdout, "%s\n", config)
+			fmt.Fprintf(os.Stdout, "# HOST: %s.opengw.net\n", record.HostName)
+			fmt.Fprintf(os.Stdout, "# IP: %s\n", record.IP)
+			fmt.Fprintf(os.Stdout, "# COUNTRY: %s\n", record.CountryLong)
+			fmt.Fprintf(os.Stdout, "#%s\n", record.OpenVPNConfig)
 		},
 	}
 }
