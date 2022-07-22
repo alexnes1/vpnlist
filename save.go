@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"os"
 	"path/filepath"
+	"strings"
 
+	sq "github.com/Masterminds/squirrel"
 	_ "modernc.org/sqlite"
 )
 
@@ -117,9 +119,29 @@ func getRandomConfig(db *sql.DB) (string, error) {
 	return config, nil
 }
 
-func getAllRecords(db *sql.DB) ([]VpnRecord, error) {
-	rows, err := db.Query(`SELECT HostName, IP, Ping, Speed, CountryShort FROM servers
-ORDER BY CountryShort, HostName;`)
+func getAllRecords(db *sql.DB, countries []string, speed int) ([]VpnRecord, error) {
+	query := sq.Select("HostName", "IP", "Ping", "Speed", "CountryShort").
+		From("servers").OrderBy("CountryShort", "HostName")
+
+	if len(countries) > 0 {
+		countriesUpper := make([]string, 0, len(countries))
+		for _, c := range countries {
+			countriesUpper = append(countriesUpper, strings.ToUpper(c))
+		}
+
+		query = query.Where(sq.Eq{"CountryShort": countriesUpper})
+	}
+
+	if speed > 0 {
+		query = query.Where(sq.Gt{"Speed": speed * 1000000})
+	}
+
+	sql, args, err := query.ToSql()
+	if err != nil {
+		return []VpnRecord{}, err
+	}
+
+	rows, err := db.Query(sql, args...)
 	if err != nil {
 		return []VpnRecord{}, err
 	}

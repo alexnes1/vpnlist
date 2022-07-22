@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/spf13/cobra"
 )
@@ -62,12 +63,16 @@ func makeRandomCmd(db *sql.DB) *cobra.Command {
 }
 
 func makeAllCmd(db *sql.DB) *cobra.Command {
-	return &cobra.Command{
+
+	countries := []string{}
+	var speed int
+
+	cmd := &cobra.Command{
 		Use:   "all",
 		Short: "list all server records",
 		Long:  "List all servers stored in the database",
 		Run: func(cmd *cobra.Command, args []string) {
-			records, err := getAllRecords(db)
+			records, err := getAllRecords(db, countries, speed)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: can not retrieve records (%s).\n", err)
 				os.Exit(1)
@@ -77,9 +82,13 @@ func makeAllCmd(db *sql.DB) *cobra.Command {
 			for _, r := range records {
 				fmt.Fprintf(os.Stdout, "%s\n", r)
 			}
-
 		},
 	}
+
+	cmd.Flags().StringSliceVarP(&countries, "country", "c", countries, "show records only with certain country code")
+	cmd.Flags().IntVarP(&speed, "speed", "s", 0, "show records only with speed equal or greater (Mbps)")
+
+	return cmd
 }
 
 func makeShowCmd(db *sql.DB) *cobra.Command {
@@ -116,6 +125,17 @@ func makeCountriesCmd(db *sql.DB) *cobra.Command {
 				fmt.Fprintf(os.Stdout, "%s\n", c)
 			}
 
+		},
+	}
+}
+
+func makeVersionCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "version",
+		Short: "version",
+		Long:  "Print program version",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Fprintf(os.Stdout, "%s (built at %s with %s)\n", Version, BuildTime, runtime.Version())
 		},
 	}
 }

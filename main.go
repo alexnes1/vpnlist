@@ -23,8 +23,9 @@ func init() {
 	showCmd := makeShowCmd(db)
 	allCmd := makeAllCmd(db)
 	countriesCmd := makeCountriesCmd(db)
+	versionCmd := makeVersionCmd()
 
-	rootCmd.AddCommand(updateCmd, randomCmd, showCmd, allCmd, countriesCmd)
+	rootCmd.AddCommand(updateCmd, randomCmd, showCmd, allCmd, countriesCmd, versionCmd)
 }
 
 func main() {
