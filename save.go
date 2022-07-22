@@ -157,3 +157,31 @@ LIMIT 1;`,
 	}
 	return config, nil
 }
+
+func getCountries(db *sql.DB) ([]string, error) {
+	rows, err := db.Query(`SELECT DISTINCT(CountryLong || ' (' || CountryShort || ')') AS country 
+FROM servers ORDER BY country;`)
+	if err != nil {
+		return []string{}, err
+	}
+
+	defer rows.Close()
+
+	result := []string{}
+
+	for rows.Next() {
+		var country string
+		err := rows.Scan(&country)
+		if err != nil {
+			return result, err
+		}
+		result = append(result, country)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
+}

@@ -73,7 +73,7 @@ func makeAllCmd(db *sql.DB) *cobra.Command {
 				os.Exit(1)
 			}
 
-			fmt.Fprintf(os.Stdout, "%-3s\t%-17s\t%-17s\t%-12s\t%-8s\n", "", "IP", "Host", "Speed", "Ping")
+			fmt.Fprintf(os.Stdout, "%-3s\t%-17s\t%-17s\t%-12s\n", "", "IP", "Host", "Speed")
 			for _, r := range records {
 				fmt.Fprintf(os.Stdout, "%s\n", r)
 			}
@@ -96,6 +96,26 @@ func makeShowCmd(db *sql.DB) *cobra.Command {
 			}
 
 			fmt.Fprintf(os.Stdout, "%s\n", config)
+		},
+	}
+}
+
+func makeCountriesCmd(db *sql.DB) *cobra.Command {
+	return &cobra.Command{
+		Use:   "countries",
+		Short: "list all countries",
+		Long:  "List countries of records stored in the database",
+		Run: func(cmd *cobra.Command, args []string) {
+			countries, err := getCountries(db)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: can not retrieve countries (%s).\n", err)
+				os.Exit(1)
+			}
+
+			for _, c := range countries {
+				fmt.Fprintf(os.Stdout, "%s\n", c)
+			}
+
 		},
 	}
 }

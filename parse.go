@@ -35,8 +35,8 @@ func (v VpnRecord) Filename() string {
 }
 
 func (v VpnRecord) String() string {
-	return fmt.Sprintf("%-3s\t%-17s\t%-17s\t%-7.2f Mbps\t%-5d ms",
-		v.CountryShort, v.IP, v.HostName, float32(v.Speed)/1000000, v.Ping)
+	return fmt.Sprintf("%-3s\t%-17s\t%-17s\t%-7.2f Mbps",
+		v.CountryShort, v.IP, v.HostName, float32(v.Speed)/1000000)
 }
 
 func makeRecordFromCsvRow(row []string) (VpnRecord, error) {
