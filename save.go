@@ -109,10 +109,33 @@ func getTotalRecords(db *sql.DB) (int, error) {
 	return total, nil
 }
 
-func getRandomConfig(db *sql.DB) (string, error) {
-	row := db.QueryRow(`SELECT OpenVPNConfig FROM servers ORDER BY RANDOM() LIMIT 1;`)
+func upperStringsSlice(a []string) []string {
+	result := make([]string, 0, len(a))
+	for _, s := range a {
+		result = append(result, strings.ToUpper(s))
+	}
+	return result
+}
+
+func getRandomConfig(db *sql.DB, countries []string, speed int) (string, error) {
+	query := sq.Select("OpenVPNConfig").From("servers").OrderBy(`RANDOM()`).Limit(1)
+	if len(countries) > 0 {
+		countriesUpper := upperStringsSlice(countries)
+		query = query.Where(sq.Eq{"CountryShort": countriesUpper})
+	}
+
+	if speed > 0 {
+		query = query.Where(sq.Gt{"Speed": speed * 1000000})
+	}
+
+	sql, args, err := query.ToSql()
+	if err != nil {
+		return "", err
+	}
+
+	row := db.QueryRow(sql, args...)
 	var config string
-	err := row.Scan(&config)
+	err = row.Scan(&config)
 	if err != nil {
 		return config, err
 	}
@@ -124,11 +147,7 @@ func getAllRecords(db *sql.DB, countries []string, speed int) ([]VpnRecord, erro
 		From("servers").OrderBy("CountryShort", "HostName")
 
 	if len(countries) > 0 {
-		countriesUpper := make([]string, 0, len(countries))
-		for _, c := range countries {
-			countriesUpper = append(countriesUpper, strings.ToUpper(c))
-		}
-
+		countriesUpper := upperStringsSlice(countries)
 		query = query.Where(sq.Eq{"CountryShort": countriesUpper})
 	}
 

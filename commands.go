@@ -46,12 +46,15 @@ func makeUpdateCmd(db *sql.DB) *cobra.Command {
 }
 
 func makeRandomCmd(db *sql.DB) *cobra.Command {
-	return &cobra.Command{
+	countries := []string{}
+	var speed int
+
+	cmd := &cobra.Command{
 		Use:   "random",
 		Short: "get random config",
 		Long:  "Get random OpenVPN config from the local database",
 		Run: func(cmd *cobra.Command, args []string) {
-			config, err := getRandomConfig(db)
+			config, err := getRandomConfig(db, countries, speed)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: can not retrieve config (%s).\n", err)
 				os.Exit(1)
@@ -60,6 +63,11 @@ func makeRandomCmd(db *sql.DB) *cobra.Command {
 			fmt.Fprintf(os.Stdout, "%s\n", config)
 		},
 	}
+
+	cmd.Flags().StringSliceVarP(&countries, "country", "c", countries, "show records only with certain country code")
+	cmd.Flags().IntVarP(&speed, "speed", "s", 0, "show records only with speed equal or greater (Mbps)")
+
+	return cmd
 }
 
 func makeAllCmd(db *sql.DB) *cobra.Command {
