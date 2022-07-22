@@ -75,4 +75,4 @@ $ vpnlist random | sudo openvpn /dev/stdin
 
 ## Credits
 
-* [VPN Gate](vpngate.net) - Public Free VPN Cloud by Univ of Tsukuba, Japan
+* [VPN Gate](https://www.vpngate.net/en/) - Public Free VPN Cloud by Univ of Tsukuba, Japan
