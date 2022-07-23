@@ -17,10 +17,10 @@ $ vpnlist update
 vpngate.net API offers a fraction of its servers per request, so `vpnlist` stores them in the local sqlite database located in the `.config/vpnlist/` directory of the current user. 
 The update command is meant to be used from time to time, so it may be a good idea to run it on schedule to incrementally expand the list of available servers.
 
-### all
+### *default*
 Show descriptions of all servers stored in the local database.
 ```
-$ vpnlist all
+$ vpnlist
    	IP               	Host             	Speed       
 ID 	xxx.xxx.xxx.xxx  	public-vpn-xxx   	22.42   Mbps
 JP 	xxx.xxx.xxx.xxx  	public-vpn-xxx   	78.40   Mbps
@@ -29,7 +29,7 @@ JP 	xxx.xxx.xxx.xxx  	public-vpn-xxx   	78.40   Mbps
 
 Output of this command can be filtered with `country` and `speed` flags:
 ```
-$ vpnlist all --country JP -c US --speed 100
+$ vpnlist --country JP -c US --speed 100
 ```
 
 ### countries
@@ -60,7 +60,7 @@ $ vpnlist random
 # OpenVPN 2.0 Sample Configuration File
 ...
 ```
-Random selection can be limited the same way as the `all` command:
+Random selection can be limited the same way as the defaul command:
 ```
 $ vpnlist random --country JP --speed 20
 ```

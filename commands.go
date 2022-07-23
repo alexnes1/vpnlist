@@ -9,10 +9,42 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "vpnlist",
-	Short: "OpenVPN configs grabber and storage for vpngate.net",
-	Long:  "This program is capable of parsing vpngate.net for OpenVPN configs, their storage and retrieval",
+var rootCmd *cobra.Command
+
+func makeRootCmd(db *sql.DB) *cobra.Command {
+
+	countries := []string{}
+	var speed int
+
+	cmd := &cobra.Command{
+		Use:   "vpnlist",
+		Short: "list all server records",
+		Long: `This program is capable of parsing vpngate.net for OpenVPN configs, their storage and retrieval. 
+Default command lists all servers stored in the database`,
+		Run: func(cmd *cobra.Command, args []string) {
+			records, err := getAllRecords(db, countries, speed)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: can not retrieve records (%s).\n", err)
+				os.Exit(1)
+			}
+
+			if len(records) == 0 {
+				fmt.Fprintln(os.Stdout, `There are no server records in the local database yet.
+To populate the database, run 'vpnlist update'.`)
+				return
+			}
+
+			fmt.Fprintf(os.Stdout, "%-3s\t%-17s\t%-17s\t%-12s\n", "", "IP", "Host", "Speed")
+			for _, r := range records {
+				fmt.Fprintf(os.Stdout, "%s\n", r)
+			}
+		},
+	}
+
+	cmd.Flags().StringSliceVarP(&countries, "country", "c", countries, "show records only with certain country code")
+	cmd.Flags().IntVarP(&speed, "speed", "s", 0, "show records only with speed equal or greater (Mbps)")
+
+	return cmd
 }
 
 func makeUpdateCmd(db *sql.DB) *cobra.Command {
@@ -64,35 +96,6 @@ func makeRandomCmd(db *sql.DB) *cobra.Command {
 			fmt.Fprintf(os.Stdout, "# IP: %s\n", record.IP)
 			fmt.Fprintf(os.Stdout, "# COUNTRY: %s\n", record.CountryLong)
 			fmt.Fprintf(os.Stdout, "#%s\n", record.OpenVPNConfig)
-		},
-	}
-
-	cmd.Flags().StringSliceVarP(&countries, "country", "c", countries, "show records only with certain country code")
-	cmd.Flags().IntVarP(&speed, "speed", "s", 0, "show records only with speed equal or greater (Mbps)")
-
-	return cmd
-}
-
-func makeAllCmd(db *sql.DB) *cobra.Command {
-
-	countries := []string{}
-	var speed int
-
-	cmd := &cobra.Command{
-		Use:   "all",
-		Short: "list all server records",
-		Long:  "List all servers stored in the database",
-		Run: func(cmd *cobra.Command, args []string) {
-			records, err := getAllRecords(db, countries, speed)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: can not retrieve records (%s).\n", err)
-				os.Exit(1)
-			}
-
-			fmt.Fprintf(os.Stdout, "%-3s\t%-17s\t%-17s\t%-12s\n", "", "IP", "Host", "Speed")
-			for _, r := range records {
-				fmt.Fprintf(os.Stdout, "%s\n", r)
-			}
 		},
 	}
 

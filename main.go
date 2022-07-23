@@ -18,14 +18,15 @@ func init() {
 		os.Exit(1)
 	}
 
+	rootCmd = makeRootCmd(db)
+
 	updateCmd := makeUpdateCmd(db)
 	randomCmd := makeRandomCmd(db)
 	showCmd := makeShowCmd(db)
-	allCmd := makeAllCmd(db)
 	countriesCmd := makeCountriesCmd(db)
 	versionCmd := makeVersionCmd()
 
-	rootCmd.AddCommand(updateCmd, randomCmd, showCmd, allCmd, countriesCmd, versionCmd)
+	rootCmd.AddCommand(updateCmd, randomCmd, showCmd, countriesCmd, versionCmd)
 }
 
 func main() {
