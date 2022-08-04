@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 const apiURL = "http://www.vpngate.net/api/iphone/"
@@ -29,6 +30,7 @@ type VpnRecord struct {
 	Message        string
 	OpenVPNConfig  string
 	Online         bool
+	AvgPing        time.Duration
 }
 
 func (v VpnRecord) Filename() string {

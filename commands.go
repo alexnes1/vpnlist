@@ -65,7 +65,7 @@ func printRecords(out io.Writer, records []VpnRecord) {
 	}
 }
 
-func isOnline(addr string, timeout time.Duration) bool {
+func isOnline(addr string, timeout time.Duration) (bool, time.Duration) {
 	pinger, err := ping.NewPinger(addr)
 	if err != nil {
 		panic(err)
@@ -75,7 +75,7 @@ func isOnline(addr string, timeout time.Duration) bool {
 	pinger.Timeout = timeout
 	pinger.Run()
 	stats := pinger.Statistics()
-	return stats.PacketsSent == stats.PacketsRecv
+	return stats.PacketsSent == stats.PacketsRecv, stats.AvgRtt
 }
 
 const colorRed = "\033[31m"
@@ -84,7 +84,7 @@ const colorReset = "\033[0m"
 
 func pingRecords(from <-chan VpnRecord, to chan<- VpnRecord, wg *sync.WaitGroup, timeout time.Duration) {
 	for record := range from {
-		record.Online = isOnline(record.IP, timeout)
+		record.Online, record.AvgPing = isOnline(record.IP, timeout)
 		to <- record
 	}
 	wg.Done()
@@ -93,7 +93,7 @@ func pingRecords(from <-chan VpnRecord, to chan<- VpnRecord, wg *sync.WaitGroup,
 func printPingedRecords(from <-chan VpnRecord, out io.Writer, wg *sync.WaitGroup) {
 	for record := range from {
 		if record.Online {
-			fmt.Fprintf(out, "%s%s\tonline%s\n", colorGreen, record, colorReset)
+			fmt.Fprintf(out, "%s%s\tonline (%v)%s\n", colorGreen, record, record.AvgPing, colorReset)
 		} else {
 			fmt.Fprintf(out, "%s%s\toffline%s\n", colorRed, record, colorReset)
 		}
