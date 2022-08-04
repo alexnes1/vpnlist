@@ -22,6 +22,7 @@ func makeRootCmd(db *sql.DB) *cobra.Command {
 	var checkOnline bool
 	var pingWorkers int
 	var pingTimeout time.Duration
+	var onlineOnly bool
 
 	cmd := &cobra.Command{
 		Use:   "vpnlist",
@@ -42,7 +43,7 @@ To populate the database, run 'vpnlist update'.`)
 			}
 
 			if checkOnline {
-				printRecordsWithPing(os.Stdout, records, pingWorkers, pingTimeout)
+				printRecordsWithPing(os.Stdout, records, pingWorkers, pingTimeout, onlineOnly)
 			} else {
 				printRecords(os.Stdout, records)
 			}
@@ -54,6 +55,7 @@ To populate the database, run 'vpnlist update'.`)
 	cmd.Flags().BoolVarP(&checkOnline, "ping", "p", false, "check if server is online")
 	cmd.Flags().IntVarP(&pingWorkers, "ping-workers", "w", 1, "ping several servers simultaneously")
 	cmd.Flags().DurationVarP(&pingTimeout, "ping-timeout", "t", 500*time.Millisecond, "ping timeout")
+	cmd.Flags().BoolVarP(&onlineOnly, "online", "o", false, "show only online servers")
 
 	return cmd
 }
@@ -90,18 +92,20 @@ func pingRecords(from <-chan VpnRecord, to chan<- VpnRecord, wg *sync.WaitGroup,
 	wg.Done()
 }
 
-func printPingedRecords(from <-chan VpnRecord, out io.Writer, wg *sync.WaitGroup) {
+func printPingedRecords(from <-chan VpnRecord, out io.Writer, wg *sync.WaitGroup, onlineOnly bool) {
 	for record := range from {
 		if record.Online {
 			fmt.Fprintf(out, "%s%s\tonline (%v)%s\n", colorGreen, record, record.AvgPing, colorReset)
 		} else {
-			fmt.Fprintf(out, "%s%s\toffline%s\n", colorRed, record, colorReset)
+			if !onlineOnly {
+				fmt.Fprintf(out, "%s%s\toffline%s\n", colorRed, record, colorReset)
+			}
 		}
 	}
 	wg.Done()
 }
 
-func printRecordsWithPing(out io.Writer, records []VpnRecord, pingWorkers int, pingTimeout time.Duration) {
+func printRecordsWithPing(out io.Writer, records []VpnRecord, pingWorkers int, pingTimeout time.Duration, onlineOnly bool) {
 	fmt.Fprintf(out, "%-3s\t%-17s\t%-17s\t%-12s\n", "", "IP", "Host", "Speed")
 
 	const bufSize = 50
@@ -117,7 +121,7 @@ func printRecordsWithPing(out io.Writer, records []VpnRecord, pingWorkers int, p
 
 	wgPrint := &sync.WaitGroup{}
 	wgPrint.Add(1)
-	go printPingedRecords(pinged, out, wgPrint)
+	go printPingedRecords(pinged, out, wgPrint, onlineOnly)
 
 	for _, r := range records {
 		toPing <- r
