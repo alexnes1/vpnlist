@@ -28,6 +28,7 @@ type VpnRecord struct {
 	Operator       string
 	Message        string
 	OpenVPNConfig  string
+	Online         bool
 }
 
 func (v VpnRecord) Filename() string {

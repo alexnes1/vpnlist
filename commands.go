@@ -3,9 +3,12 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
+	"time"
 
+	"github.com/go-ping/ping"
 	"github.com/spf13/cobra"
 )
 
@@ -15,6 +18,8 @@ func makeRootCmd(db *sql.DB) *cobra.Command {
 
 	countries := []string{}
 	var speed int
+	var checkOnline bool
+	var pingWorkers int
 
 	cmd := &cobra.Command{
 		Use:   "vpnlist",
@@ -34,17 +39,54 @@ To populate the database, run 'vpnlist update'.`)
 				return
 			}
 
-			fmt.Fprintf(os.Stdout, "%-3s\t%-17s\t%-17s\t%-12s\n", "", "IP", "Host", "Speed")
-			for _, r := range records {
-				fmt.Fprintf(os.Stdout, "%s\n", r)
+			if checkOnline {
+				printRecordsWithPing(os.Stdout, records, pingWorkers)
+			} else {
+				printRecords(os.Stdout, records)
 			}
 		},
 	}
 
 	cmd.Flags().StringSliceVarP(&countries, "country", "c", countries, "show records only with certain country code")
 	cmd.Flags().IntVarP(&speed, "speed", "s", 0, "show records only with speed equal or greater (Mbps)")
+	cmd.Flags().BoolVarP(&checkOnline, "ping", "p", false, "check if server is online")
+	cmd.Flags().IntVarP(&pingWorkers, "ping-workers", "w", 1, "ping several servers simultaneously")
 
 	return cmd
+}
+
+func printRecords(out io.Writer, records []VpnRecord) {
+	fmt.Fprintf(out, "%-3s\t%-17s\t%-17s\t%-12s\n", "", "IP", "Host", "Speed")
+	for _, r := range records {
+		fmt.Fprintf(out, "%s\n", r)
+	}
+}
+
+func isOnline(addr string) bool {
+	pinger, err := ping.NewPinger(addr)
+	if err != nil {
+		panic(err)
+	}
+	pinger.Count = 1
+	pinger.Timeout = time.Second
+	pinger.Run()
+	stats := pinger.Statistics()
+	return stats.PacketsSent == stats.PacketsRecv
+}
+
+const colorRed = "\033[31m"
+const colorGreen = "\033[32m"
+const colorReset = "\033[0m"
+
+func printRecordsWithPing(out io.Writer, records []VpnRecord, pingWorkers int) {
+	fmt.Fprintf(out, "%-3s\t%-17s\t%-17s\t%-12s\n", "", "IP", "Host", "Speed")
+	for _, r := range records {
+		if isOnline(r.IP) {
+			fmt.Fprintf(out, "%s%s%s\n", colorGreen, r, colorReset)
+		} else {
+			fmt.Fprintf(out, "%s%s%s\n", colorRed, r, colorReset)
+		}
+	}
 }
 
 func makeUpdateCmd(db *sql.DB) *cobra.Command {
