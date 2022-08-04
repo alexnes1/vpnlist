@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/go-ping/ping"
@@ -67,6 +68,7 @@ func isOnline(addr string) bool {
 	if err != nil {
 		panic(err)
 	}
+	// pinger.SetPrivileged(true)
 	pinger.Count = 1
 	pinger.Timeout = time.Second
 	pinger.Run()
@@ -78,15 +80,50 @@ const colorRed = "\033[31m"
 const colorGreen = "\033[32m"
 const colorReset = "\033[0m"
 
-func printRecordsWithPing(out io.Writer, records []VpnRecord, pingWorkers int) {
-	fmt.Fprintf(out, "%-3s\t%-17s\t%-17s\t%-12s\n", "", "IP", "Host", "Speed")
-	for _, r := range records {
-		if isOnline(r.IP) {
-			fmt.Fprintf(out, "%s%s%s\n", colorGreen, r, colorReset)
+func pingRecords(from <-chan VpnRecord, to chan<- VpnRecord, wg *sync.WaitGroup) {
+	for record := range from {
+		record.Online = isOnline(record.IP)
+		to <- record
+	}
+	wg.Done()
+}
+
+func printPingedRecords(from <-chan VpnRecord, out io.Writer, wg *sync.WaitGroup) {
+	for record := range from {
+		if isOnline(record.IP) {
+			fmt.Fprintf(out, "%s%s\tonline%s\n", colorGreen, record, colorReset)
 		} else {
-			fmt.Fprintf(out, "%s%s%s\n", colorRed, r, colorReset)
+			fmt.Fprintf(out, "%s%s\toffline%s\n", colorRed, record, colorReset)
 		}
 	}
+	wg.Done()
+}
+
+func printRecordsWithPing(out io.Writer, records []VpnRecord, pingWorkers int) {
+	fmt.Fprintf(out, "%-3s\t%-17s\t%-17s\t%-12s\n", "", "IP", "Host", "Speed")
+
+	const bufSize = 50
+	toPing := make(chan VpnRecord, bufSize)
+	pinged := make(chan VpnRecord, bufSize)
+
+	wgPing := &sync.WaitGroup{}
+
+	for i := 0; i < pingWorkers; i++ {
+		wgPing.Add(1)
+		go pingRecords(toPing, pinged, wgPing)
+	}
+
+	wgPrint := &sync.WaitGroup{}
+	wgPrint.Add(1)
+	go printPingedRecords(pinged, out, wgPrint)
+
+	for _, r := range records {
+		toPing <- r
+	}
+	close(toPing)
+	wgPing.Wait()
+	close(pinged)
+	wgPrint.Wait()
 }
 
 func makeUpdateCmd(db *sql.DB) *cobra.Command {
