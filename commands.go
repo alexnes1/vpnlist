@@ -41,6 +41,10 @@ To populate the database, run 'vpnlist update'.`)
 				return
 			}
 
+			if onlineOnly {
+				checkOnline = true
+			}
+
 			if checkOnline {
 				printRecordsWithPing(os.Stdout, records, pingWorkers, pingTimeout, onlineOnly)
 			} else {
@@ -52,7 +56,7 @@ To populate the database, run 'vpnlist update'.`)
 	cmd.Flags().StringSliceVarP(&countries, "country", "c", countries, "show records only with certain country code")
 	cmd.Flags().IntVarP(&speed, "speed", "s", 0, "show records only with speed equal or greater (Mbps)")
 	cmd.Flags().BoolVarP(&checkOnline, "ping", "p", false, "check if server is online")
-	cmd.Flags().IntVarP(&pingWorkers, "ping-workers", "w", 1, "ping several servers simultaneously")
+	cmd.Flags().IntVarP(&pingWorkers, "ping-workers", "w", 4, "ping several servers simultaneously")
 	cmd.Flags().DurationVarP(&pingTimeout, "ping-timeout", "t", 500*time.Millisecond, "ping timeout")
 	cmd.Flags().BoolVarP(&onlineOnly, "online", "o", false, "show only online servers")
 
