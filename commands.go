@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-ping/ping"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +36,7 @@ Default command lists all servers stored in the database`,
 			}
 
 			if len(records) == 0 {
-				fmt.Fprintln(os.Stdout, `There are no server records in the local database yet.
+				fmt.Fprintln(os.Stdout, `There are no server records that match the constaints in the local database yet.
 To populate the database, run 'vpnlist update'.`)
 				return
 			}
@@ -63,21 +62,8 @@ To populate the database, run 'vpnlist update'.`)
 func printRecords(out io.Writer, records []VpnRecord) {
 	fmt.Fprintf(out, "%-3s\t%-17s\t%-17s\t%-12s\n", "", "IP", "Host", "Speed")
 	for _, r := range records {
-		fmt.Fprintf(out, "%s\n", r)
+		fmt.Fprintf(out, "%s\n", r.String())
 	}
-}
-
-func isOnline(addr string, timeout time.Duration) (bool, time.Duration) {
-	pinger, err := ping.NewPinger(addr)
-	if err != nil {
-		panic(err)
-	}
-	// pinger.SetPrivileged(true)
-	pinger.Count = 1
-	pinger.Timeout = timeout
-	pinger.Run()
-	stats := pinger.Statistics()
-	return stats.PacketsSent == stats.PacketsRecv, stats.AvgRtt
 }
 
 const colorRed = "\033[31m"
@@ -86,7 +72,7 @@ const colorReset = "\033[0m"
 
 func pingRecords(from <-chan VpnRecord, to chan<- VpnRecord, wg *sync.WaitGroup, timeout time.Duration) {
 	for record := range from {
-		record.Online, record.AvgPing = isOnline(record.IP, timeout)
+		record.CheckPing(timeout)
 		to <- record
 	}
 	wg.Done()
@@ -95,10 +81,11 @@ func pingRecords(from <-chan VpnRecord, to chan<- VpnRecord, wg *sync.WaitGroup,
 func printPingedRecords(from <-chan VpnRecord, out io.Writer, wg *sync.WaitGroup, onlineOnly bool) {
 	for record := range from {
 		if record.Online {
-			fmt.Fprintf(out, "%s%s\tonline (%v)%s\n", colorGreen, record, record.AvgPing, colorReset)
+			fmt.Fprintf(out, "%s%s\tonline (%v)%s\n", colorGreen, record.String(),
+				record.AvgPing.Round(time.Millisecond), colorReset)
 		} else {
 			if !onlineOnly {
-				fmt.Fprintf(out, "%s%s\toffline%s\n", colorRed, record, colorReset)
+				fmt.Fprintf(out, "%s%s\toffline%s\n", colorRed, record.String(), colorReset)
 			}
 		}
 	}
@@ -106,7 +93,7 @@ func printPingedRecords(from <-chan VpnRecord, out io.Writer, wg *sync.WaitGroup
 }
 
 func printRecordsWithPing(out io.Writer, records []VpnRecord, pingWorkers int, pingTimeout time.Duration, onlineOnly bool) {
-	fmt.Fprintf(out, "%-3s\t%-17s\t%-17s\t%-12s\n", "", "IP", "Host", "Speed")
+	fmt.Fprintf(out, "%-3s\t%-17s\t%-17s\t%-12s\t%-14s\n", "", "IP", "Host", "Speed", "Status")
 
 	const bufSize = 50
 	toPing := make(chan VpnRecord, bufSize)

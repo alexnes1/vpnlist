@@ -8,39 +8,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 const apiURL = "http://www.vpngate.net/api/iphone/"
-
-type VpnRecord struct {
-	HostName       string
-	IP             string
-	Score          int
-	Ping           int
-	Speed          int
-	CountryLong    string
-	CountryShort   string
-	NumVpnSessions int
-	Uptime         int
-	TotalUsers     int
-	TotalTraffic   int64
-	LogType        string
-	Operator       string
-	Message        string
-	OpenVPNConfig  string
-	Online         bool
-	AvgPing        time.Duration
-}
-
-func (v VpnRecord) Filename() string {
-	return fmt.Sprintf("%s_%s_%s.ovpn", v.CountryShort, v.HostName, v.IP)
-}
-
-func (v VpnRecord) String() string {
-	return fmt.Sprintf("%-3s\t%-17s\t%-17s\t%-7.2f Mbps",
-		v.CountryShort, v.IP, v.HostName, float32(v.Speed)/1000000)
-}
 
 func makeRecordFromCsvRow(row []string) (VpnRecord, error) {
 	rec := VpnRecord{}
@@ -154,7 +124,7 @@ func downloadRecords(output io.Writer) ([]VpnRecord, error) {
 			continue
 		}
 		vpnRecords = append(vpnRecords, record)
-		fmt.Fprintf(output, "%s\n", record)
+		fmt.Fprintf(output, "%s\n", record.String())
 	}
 
 	return vpnRecords, nil
