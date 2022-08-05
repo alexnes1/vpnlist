@@ -32,6 +32,21 @@ Output of this command can be filtered with `country` and `speed` flags:
 $ vpnlist --country JP -c US --speed 100
 ```
 
+If you want to check the status of servers:
+```
+$ vpnlist --ping --ping-timeout 100ms --ping-workers 8
+```
+
+If `ping` flag is set, the default `ping-timeout` value is 500ms and `ping-workers` is 4.
+
+Use `online` flag to display only online servers (this flag implies the same behaviour and defaults as `ping` flag).
+
+vpnlist uses [go-ping](https://pkg.go.dev/github.com/sparrc/go-ping) library and therefore attempts to send an
+"uprivileged" ping via UDP. If you want to ping servers, you should enable the following setting:
+```
+$ sudo sysctl -w net.ipv4.ping_group_range="0   2147483647"
+```
+
 ### countries
 Show the list of all countries represented in the local database.
 ```
